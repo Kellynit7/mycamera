@@ -2,23 +2,25 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>劉姥姥的相片館</title>
     <style>
         body {
             background: #060709;
             margin: 0;
-            padding: 20px;
+            padding: 12px;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            box-sizing: border-box;
         }
         .minimal-btn {
             transition: all 0.2s ease-in-out;
             border: none;
             font-size: 13px;
             letter-spacing: 1px;
+            -webkit-tap-highlight-color: transparent;
         }
         .minimal-btn:hover {
             opacity: 0.9;
@@ -30,35 +32,51 @@
         select:focus {
             border-color: #4b7bec !important;
         }
+        /* 優化手機滑桿樣式 */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: #252833;
+            border-radius: 4px;
+            height: 6px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
-    <div id="app_box" style="padding: 26px; background: #0d0e12; border-radius: 12px; width: 100%; max-width: 550px; color: #f3f4f6; font-family: 'PMingLiU', 'MingLiU', serif; box-shadow: 0 20px 40px rgba(0,0,0,0.6); border: 1px solid #272930; letter-spacing: 0.5px; box-sizing: border-box;">
-        <h3 style="margin-top:0; color: #ffffff; border-bottom: 1px solid #23252d; padding-bottom: 16px; text-align: center; font-size: 22px; letter-spacing: 4px; font-weight: 400; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">劉姥姥的相片館</h3>
+    <div id="app_box" style="padding: 20px; background: #0d0e12; border-radius: 12px; width: 100%; max-width: 500px; color: #f3f4f6; font-family: 'PMingLiU', 'MingLiU', serif; box-shadow: 0 20px 40px rgba(0,0,0,0.6); border: 1px solid #272930; letter-spacing: 0.5px; box-sizing: border-box;">
+        <h3 style="margin-top:0; color: #ffffff; border-bottom: 1px solid #23252d; padding-bottom: 14px; text-align: center; font-size: 20px; letter-spacing: 4px; font-weight: 400; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">劉姥姥的相片館</h3>
        
-        <div id="camera_container" style="position: relative; margin: 20px 0; background: #000; border-radius: 6px; overflow: hidden; aspect-ratio: 4/3; border: 1px solid #1f2128;">
-            <div id="countdown_overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; display:flex; justify-content:center; align-items:center; font-size:90px; color:#ffffff; font-weight:300; background:rgba(0,0,0,0.7); z-index:10; pointer-events:none; display:none; font-family: sans-serif;"></div>
+        <!-- ✨ 這裡修復了外框容器，確保內部不論什麼比例都能滿版顯示且不壓扁 -->
+        <div id="camera_container" style="position: relative; margin: 16px 0; background: #000; border-radius: 6px; overflow: hidden; height: 320px; border: 1px solid #1f2128; display: flex; justify-content: center; align-items: center;">
+            <div id="countdown_overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; display:flex; justify-content:center; align-items:center; font-size:80px; color:#ffffff; font-weight:300; background:rgba(0,0,0,0.7); z-index:10; pointer-events:none; display:none; font-family: sans-serif;"></div>
         </div>
        
-        <div style="display: flex; justify-content: space-around; background: #13151a; padding: 10px; border-radius: 6px; margin-bottom: 24px; border: 1px solid #1f2128; font-size: 13px; color: #8a8f9d;">
-            <div style="text-align: center;">鍵盤 <span style="background: #ffffff; color: #0d0e12; padding: 1px 6px; border-radius: 3px; font-weight: bold; font-family: monospace;">Space</span> 即拍</div>
-            <div style="text-align: center;">鍵盤 <span style="background: #252833; color: #e5e7eb; padding: 1px 6px; border-radius: 3px; font-weight: bold; font-family: monospace;">3</span> 3秒</div>
-            <div style="text-align: center;">鍵盤 <span style="background: #252833; color: #e5e7eb; padding: 1px 6px; border-radius: 3px; font-weight: bold; font-family: monospace; border: 1px solid #3b3f51;">5</span> 5秒</div>
+        <div style="display: flex; justify-content: space-around; background: #13151a; padding: 10px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #1f2128; font-size: 11px; color: #8a8f9d;">
+            <div style="text-align: center;">手機點擊畫面可操作</div>
+            <div style="text-align: center;"><span style="background: #252833; color: #e5e7eb; padding: 1px 4px; border-radius: 3px; font-family: monospace;">Space</span> 即拍</div>
+            <div style="text-align: center;"><span style="background: #252833; color: #e5e7eb; padding: 1px 4px; border-radius: 3px; font-family: monospace;">3</span> / <span style="background: #252833; color: #e5e7eb; padding: 1px 4px; border-radius: 3px; font-family: monospace;">5</span> 倒數</div>
         </div>
        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
             <div>
-                <label style="font-size: 13px; color: #8a8f9d; font-weight: normal;">📐 構圖輔助線</label><br>
-                <select id="mode_select" style="width: 100%; padding: 10px; background: #13151a; color: #ffffff; border: 1px solid #272930; border-radius: 6px; margin-top: 6px; outline: none; cursor: pointer; font-family: 'PMingLiU', serif; font-size: 13px; transition: border 0.2s;">
+                <label style="font-size: 12px; color: #8a8f9d; font-weight: normal;">📐 構圖輔助線</label><br>
+                <select id="mode_select" style="width: 100%; padding: 8px; background: #13151a; color: #ffffff; border: 1px solid #272930; border-radius: 6px; margin-top: 6px; outline: none; cursor: pointer; font-family: 'PMingLiU', serif; font-size: 12px; transition: border 0.2s;">
                     <option value="none">無輔助線</option>
                     <option value="grid">九宮格構圖 (Grid)</option>
                     <option value="spiral">黃金螺旋 (Golden Spiral)</option>
                 </select>
             </div>
             <div>
-                <label style="font-size: 13px; color: #8a8f9d; font-weight: normal;">🎨 鏡頭與特效</label><br>
-                <select id="effect_select" style="width: 100%; padding: 10px; background: #13151a; color: #ffffff; border: 1px solid #272930; border-radius: 6px; margin-top: 6px; outline: none; cursor: pointer; font-family: 'PMingLiU', serif; font-size: 13px; transition: border 0.2s;">
+                <label style="font-size: 12px; color: #8a8f9d; font-weight: normal;">🎨 鏡頭與特效</label><br>
+                <select id="effect_select" style="width: 100%; padding: 8px; background: #13151a; color: #ffffff; border: 1px solid #272930; border-radius: 6px; margin-top: 6px; outline: none; cursor: pointer; font-family: 'PMingLiU', serif; font-size: 12px; transition: border 0.2s;">
                     <option value="none">原圖正常 (Normal)</option>
                     <option value="polaroid" selected>復古柔焦拍立得 📸</option>
                     <option value="haha">哈哈鏡特效 (Distortion)</option>
@@ -69,21 +87,21 @@
             </div>
         </div>
 
-        <div id="manual_controls" style="background: #13151a; padding: 12px; border-radius: 6px; margin-bottom: 24px; font-size: 13px; border: 1px solid #1f2128; display:none; color: #8a8f9d;">
-            📏 調整貼圖尺寸（點擊畫面可定位）：
-            <input type="range" id="sticker_size" min="40" max="250" value="130" style="width:50%; vertical-align: middle; margin-left: 10px; cursor: pointer;">
+        <div id="manual_controls" style="background: #13151a; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 12px; border: 1px solid #1f2128; display:none; color: #8a8f9d;">
+            📏 調整貼圖尺寸（點擊鏡頭可移動）：
+            <input type="range" id="sticker_size" min="40" max="250" value="130" style="width:45%; vertical-align: middle; margin-left: 10px; cursor: pointer;">
         </div>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 26px;">
-            <button id="btn_instant" class="minimal-btn" style="flex: 1.4; padding: 12px; background: #ffffff; color: #0d0e12; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'PMingLiU', serif;">📸 瞬間即拍</button>
-            <button id="btn_3s" class="minimal-btn" style="flex: 0.9; padding: 12px; background: #2f5ac7; color: #ffffff; border-radius: 6px; font-weight: normal; cursor: pointer; font-family: 'PMingLiU', serif;">⏳ 3秒倒數</button>
-            <button id="btn_5s" class="minimal-btn" style="flex: 0.9; padding: 12px; background: #1c3d94; color: #ffffff; border-radius: 6px; font-weight: normal; cursor: pointer; font-family: 'PMingLiU', serif;">⏳ 5秒倒數</button>
-            <button id="stop_btn" class="minimal-btn" style="flex: 0.8; padding: 12px; background: #252730; color: #a5aab8; border-radius: 6px; font-weight: normal; cursor: pointer; font-family: 'PMingLiU', serif; border: 1px solid #31343f;">🛑 關閉</button>
+        <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+            <button id="btn_instant" class="minimal-btn" style="flex: 1.3; padding: 10px; background: #ffffff; color: #0d0e12; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'PMingLiU', serif;">📸 瞬間即拍</button>
+            <button id="btn_3s" class="minimal-btn" style="flex: 0.9; padding: 10px; background: #2f5ac7; color: #ffffff; border-radius: 6px; font-weight: normal; cursor: pointer; font-family: 'PMingLiU', serif;">⏳ 3秒</button>
+            <button id="btn_5s" class="minimal-btn" style="flex: 0.9; padding: 10px; background: #1c3d94; color: #ffffff; border-radius: 6px; font-weight: normal; cursor: pointer; font-family: 'PMingLiU', serif;">⏳ 5秒</button>
+            <button id="stop_btn" class="minimal-btn" style="flex: 0.8; padding: 10px; background: #252730; color: #a5aab8; border-radius: 6px; font-weight: normal; cursor: pointer; font-family: 'PMingLiU', serif; border: 1px solid #31343f;">🛑 關閉</button>
         </div>
 
-        <div style="border-top: 1px solid #1f2128; padding-top: 20px;">
-            <p style="margin-top: 0; font-size: 14px; color: #ffffff; font-weight: normal; letter-spacing: 1px;">🖼️ 沖洗照片成果</p>
-            <div id="photo_result" style="text-align: center; color: #626775; font-style: normal; background: #08090c; padding: 24px; border-radius: 6px; min-height: 60px; border: 1px solid #1f2128; display: flex; justify-content: center; align-items: center; font-size: 13px;">
+        <div style="border-top: 1px solid #1f2128; padding-top: 16px;">
+            <p style="margin-top: 0; font-size: 13px; color: #ffffff; font-weight: normal; letter-spacing: 1px;">🖼️ 沖洗照片成果</p>
+            <div id="photo_result" style="text-align: center; color: #626775; font-style: normal; background: #08090c; padding: 16px; border-radius: 6px; min-height: 60px; border: 1px solid #1f2128; display: flex; justify-content: center; align-items: center; font-size: 12px; box-sizing: border-box;">
                 等待快門觸發，影像將在此呈現...
             </div>
         </div>
@@ -105,11 +123,17 @@
 
         let stream = null;
         let video = document.createElement('video');
-        video.style.width = '100%'; video.style.height = '100%'; video.style.objectFit = 'cover';
-        video.setAttribute('playsinline', ''); // 防止 iPhone 自動全螢幕播放
+        
+        // ✨ 新增 objectFit 處理，並將寬高綁定在容器上，不與畫布衝突
+        video.style.width = '100%'; 
+        video.style.height = '100%'; 
+        video.style.objectFit = 'cover';
+        video.setAttribute('playsinline', ''); 
        
         try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }); // 預設使用前鏡頭
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } 
+            }); 
             container.appendChild(video);
             video.srcObject = stream;
             video.style.transform = 'scaleX(-1)';
@@ -122,7 +146,7 @@
         const canvas = document.createElement('canvas');
         canvas.style.position = 'absolute'; canvas.style.left = '0px'; canvas.style.top = '0px';
         canvas.style.width = '100%'; canvas.style.height = '100%';
-        canvas.style.objectFit = 'cover'; // ✨ 防止手機畫面被壓扁的魔法
+        canvas.style.objectFit = 'cover'; // ✨ 雙重防變形保險
         container.appendChild(canvas);
         const ctx = canvas.getContext('2d');
 
@@ -136,6 +160,7 @@
         let isRunning = true; let isCounting = false;
         let stickerX = 0; let stickerY = 0; let stickerW = 130;
 
+        // ✨ 修正邏輯：以相機鏡頭實際輸出的比例做為畫布基準
         video.onloadedmetadata = () => {
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
@@ -146,11 +171,13 @@
             renderLoop();
         };
 
+        // 手機點擊調整貼圖定位更精準
         container.onclick = (e) => {
             const rect = container.getBoundingClientRect();
             let pctX = (e.clientX - rect.left) / rect.width;
             let pctY = (e.clientY - rect.top) / rect.height;
-            stickerX = (1 - pctX) * canvas.width; stickerY = pctY * canvas.height;
+            stickerX = (1 - pctX) * canvas.width; 
+            stickerY = pctY * canvas.height;
         };
 
         window.onkeydown = (e) => {
@@ -303,7 +330,7 @@
             const imgUrl = outCanvas.toDataURL('image/jpeg');
             photoResult.style.background = "transparent";
             photoResult.style.border = "none";
-            photoResult.innerHTML = `<div style="width:100%; text-align:center;"><img src="${imgUrl}" style="max-width:100%; border-radius:4px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 1px solid #272930;"/><p style="color:#ffffff; font-size:13px; margin-top:12px; font-weight:normal; letter-spacing:2px; font-family:'PMingLiU', serif;">✨ 影像已洗出。長按或右鍵點擊相片即可儲存</p></div>`;
+            photoResult.innerHTML = `<div style="width:100%; text-align:center;"><img src="${imgUrl}" style="max-width:100%; border-radius:4px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 1px solid #272930;"/><p style="color:#ffffff; font-size:12px; margin-top:12px; font-weight:normal; letter-spacing:2px; font-family:'PMingLiU', serif;">✨ 影像已洗出。長按即可儲存相片</p></div>`;
         }
 
         function triggerInstantCapture() {
