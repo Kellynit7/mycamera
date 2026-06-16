@@ -106,7 +106,13 @@
         let stream = null;
         let video = document.createElement('video');
         video.style.width = '100%'; video.style.height = '100%'; video.style.objectFit = 'cover';
-        video.setAttribute('playsinline', ''); // 關鍵設定：防止 iPhone 自動全螢幕播放
+        video.setAttribute('playsinline', '');
+
+        // ✨ 新增這行：強制讓畫布（Canvas）與影像同步裁切填滿，不變形！
+        const canvas = document.createElement('canvas');
+        canvas.style.position = 'absolute'; canvas.style.left = '0px'; canvas.style.top = '0px';
+        canvas.style.width = '100%'; canvas.style.height = '100%';
+        canvas.style.objectFit = 'cover'; // <-- 關鍵就是加上這一行！
        
         try {
             stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }); // 預設使用前鏡頭
