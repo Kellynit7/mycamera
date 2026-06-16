@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>劉姥姥的相片館</title>
+    <style>
+        body {
+            background: #060709;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .minimal-btn {
+            transition: all 0.2s ease-in-out;
+            border: none;
+            font-size: 13px;
+            letter-spacing: 1px;
+        }
+        .minimal-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .minimal-btn:active {
+            transform: translateY(0px);
+        }
+        select:focus {
+            border-color: #4b7bec !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app_box" style="padding: 26px; background: #0d0e12; border-radius: 12px; width: 100%; max-width: 550px; color: #f3f4f6; font-family: 'PMingLiU', 'MingLiU', serif; box-shadow: 0 20px 40px rgba(0,0,0,0.6); border: 1px solid #272930; letter-spacing: 0.5px; box-sizing: border-box;">
+        <h3 style="margin-top:0; color: #ffffff; border-bottom: 1px solid #23252d; padding-bottom: 16px; text-align: center; font-size: 22px; letter-spacing: 4px; font-weight: 400; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">劉姥姥的相片館</h3>
+       
+        <div id="camera_container" style="position: relative; margin: 20px 0; background: #000; border-radius: 6px; overflow: hidden; aspect-ratio: 4/3; border: 1px solid #1f2128;">
+            <div id="countdown_overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; display:flex; justify-content:center; align-items:center; font-size:90px; color:#ffffff; font-weight:300; background:rgba(0,0,0,0.7); z-index:10; pointer-events:none; display:none; font-family: sans-serif;"></div>
+        </div>
+       
+        <div style="display: flex; justify-content: space-around; background: #13151a; padding: 10px; border-radius: 6px; margin-bottom: 24px; border: 1px solid #1f2128; font-size: 13px; color: #8a8f9d;">
+            <div style="text-align: center;">鍵盤 <span style="background: #ffffff; color: #0d0e12; padding: 1px 6px; border-radius: 3px; font-weight: bold; font-family: monospace;">Space</span> 即拍</div>
+            <div style="text-align: center;">鍵盤 <span style="background: #252833; color: #e5e7eb; padding: 1px 6px; border-radius: 3px; font-weight: bold; font-family: monospace;">3</span> 3秒</div>
+            <div style="text-align: center;">鍵盤 <span style="background: #252833; color: #e5e7eb; padding: 1px 6px; border-radius: 3px; font-weight: bold; font-family: monospace; border: 1px solid #3b3f51;">5</span> 5秒</div>
+        </div>
+       
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+            <div>
+                <label style="font-size: 13px; color: #8a8f9d; font-weight: normal;">📐 構圖輔助線</label><br>
+                <select id="mode_select" style="width: 100%; padding: 10px; background: #13151a; color: #ffffff; border: 1px solid #272930; border-radius: 6px; margin-top: 6px; outline: none; cursor: pointer; font-family: 'PMingLiU', serif; font-size: 13px; transition: border 0.2s;">
+                    <option value="none">無輔助線</option>
+                    <option value="grid">九宮格構圖 (Grid)</option>
+                    <option value="spiral">黃金螺旋 (Golden Spiral)</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size: 13px; color: #8a8f9d; font-weight: normal;">🎨 鏡頭與特效</label><br>
+                <select id="effect_select" style="width: 100%; padding: 10px; background: #13151a; color: #ffffff; border: 1px solid #272930; border-radius: 6px; margin-top: 6px; outline: none; cursor: pointer; font-family: 'PMingLiU', serif; font-size: 13px; transition: border 0.2s;">
+                    <option value="none">原圖正常 (Normal)</option>
+                    <option value="polaroid" selected>復古柔焦拍立得 📸</option>
+                    <option value="haha">哈哈鏡特效 (Distortion)</option>
+                    <option value="glasses">潮流黑色墨鏡 🕶️</option>
+                    <option value="horns">兩側惡魔彎角 😈</option>
+                    <option value="clown">小丑紅鼻子 🔴</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="manual_controls" style="background: #13151a; padding: 12px; border-radius: 6px; margin-bottom: 24px; font-size: 13px; border: 1px solid #1f2128; display:none; color: #8a8f9d;">
+            📏 調整貼圖尺寸（點擊畫面可定位）：
+            <input type="range" id="sticker_size" min="40" max="250" value="130" style="width:50%; vertical-align: middle; margin-left: 10px; cursor: pointer;">
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 26px;">
+            <button id="btn_instant" class="minimal-btn" style="flex: 1.4; padding: 12px; background: #ffffff; color: #0d0e12; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'PMingLiU', serif;">📸 瞬間即拍</button>
+            <button id="btn_3s" class="minimal-btn" style="flex: 0.9; padding: 12px; background: #2f5ac7; color: #ffffff; border-radius: 6px; font-weight: normal; cursor: pointer; font-family: 'PMingLiU', serif;">⏳ 3秒倒數</button>
+            <button id="btn_5s" class="minimal-btn" style="flex: 0.9; padding: 12px; background: #1c3d94; color: #ffffff; border-radius: 6px; font-weight: normal; cursor: pointer; font-family: 'PMingLiU', serif;">⏳ 5秒倒數</button>
+            <button id="stop_btn" class="minimal-btn" style="flex: 0.8; padding: 12px; background: #252730; color: #a5aab8; border-radius: 6px; font-weight: normal; cursor: pointer; font-family: 'PMingLiU', serif; border: 1px solid #31343f;">🛑 關閉</button>
+        </div>
+
+        <div style="border-top: 1px solid #1f2128; padding-top: 20px;">
+            <p style="margin-top: 0; font-size: 14px; color: #ffffff; font-weight: normal; letter-spacing: 1px;">🖼️ 沖洗照片成果</p>
+            <div id="photo_result" style="text-align: center; color: #626775; font-style: normal; background: #08090c; padding: 24px; border-radius: 6px; min-height: 60px; border: 1px solid #1f2128; display: flex; justify-content: center; align-items: center; font-size: 13px;">
+                等待快門觸發，影像將在此呈現...
+            </div>
+        </div>
+    </div>
+
+    <script>
+    async function initApp() {
+        const container = document.getElementById('camera_container');
+        const modeSelect = document.getElementById('mode_select');
+        const effectSelect = document.getElementById('effect_select');
+        const btnInstant = document.getElementById('btn_instant');
+        const btn3s = document.getElementById('btn_3s');
+        const btn5s = document.getElementById('btn_5s');
+        const stopBtn = document.getElementById('stop_btn');
+        const photoResult = document.getElementById('photo_result');
+        const countdownOverlay = document.getElementById('countdown_overlay');
+        const manualControls = document.getElementById('manual_controls');
+        const stickerSizeInput = document.getElementById('sticker_size');
+
+        let stream = null;
+        let video = document.createElement('video');
+        video.style.width = '100%'; video.style.height = '100%'; video.style.objectFit = 'cover';
+        video.setAttribute('playsinline', ''); // 關鍵設定：防止 iPhone 自動全螢幕播放
+       
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }); // 預設使用前鏡頭
+            container.appendChild(video);
+            video.srcObject = stream;
+            video.style.transform = 'scaleX(-1)';
+            await video.play();
+        } catch (err) {
+            container.innerHTML = `<p style="color:#ef4444; padding:20px; text-align:center; font-size:13px;">鏡頭啟動失敗，請確保使用 HTTPS 開啟網頁並允許攝影機權限。</p>`;
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.style.position = 'absolute'; canvas.style.left = '0px'; canvas.style.top = '0px';
+        canvas.style.width = '100%'; canvas.style.height = '100%';
+        container.appendChild(canvas);
+        const ctx = canvas.getContext('2d');
+
+        const snapshotCanvas = document.createElement('canvas');
+        const sCtx = snapshotCanvas.getContext('2d');
+
+        const procCanvas = document.createElement('canvas');
+        const filterCanvas = document.createElement('canvas');
+        const fCtx = filterCanvas.getContext('2d');
+
+        let isRunning = true; let isCounting = false;
+        let stickerX = 0; let stickerY = 0; let stickerW = 130;
+
+        video.onloadedmetadata = () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            snapshotCanvas.width = canvas.width;
+            snapshotCanvas.height = canvas.height;
+            stickerX = canvas.width / 2;
+            stickerY = canvas.height / 2;
+            renderLoop();
+        };
+
+        container.onclick = (e) => {
+            const rect = container.getBoundingClientRect();
+            let pctX = (e.clientX - rect.left) / rect.width;
+            let pctY = (e.clientY - rect.top) / rect.height;
+            stickerX = (1 - pctX) * canvas.width; stickerY = pctY * canvas.height;
+        };
+
+        window.onkeydown = (e) => {
+            if (isCounting || !isRunning) return;
+            if (e.key === " ") { e.preventDefault(); triggerInstantCapture(); }
+            if (e.key === "3") startCountdown(3);
+            if (e.key === "5") startCountdown(5);
+        };
+
+        btnInstant.onclick = () => { if(!isCounting && isRunning) triggerInstantCapture(); };
+        btn3s.onclick = () => { if(!isCounting && isRunning) startCountdown(3); };
+        btn5s.onclick = () => { if(!isCounting && isRunning) startCountdown(5); };
+
+        function drawTrendyGlasses(tCtx, cx, cy, w) {
+            let h = w * 0.35; tCtx.save();
+            tCtx.shadowColor = "rgba(0,0,0,0.4)"; tCtx.shadowBlur = 8; tCtx.shadowOffsetY = 4;
+            tCtx.fillStyle = "#111111"; tCtx.strokeStyle = "#000000"; tCtx.lineWidth = 2;
+            tCtx.beginPath(); tCtx.moveTo(cx - w*0.48, cy - h*0.2); tCtx.bezierCurveTo(cx - w*0.45, cy - h*0.7, cx - w*0.08, cy - h*0.7, cx - w*0.05, cy - h*0.2); tCtx.bezierCurveTo(cx - w*0.04, cy + h*0.5, cx - w*0.40, cy + h*0.7, cx - w*0.48, cy - h*0.2); tCtx.fill(); tCtx.stroke();
+            tCtx.beginPath(); tCtx.moveTo(cx + w*0.05, cy - h*0.2); tCtx.bezierCurveTo(cx + w*0.08, cy - h*0.7, cx + w*0.45, cy - h*0.7, cx + w*0.48, cy - h*0.2); tCtx.bezierCurveTo(cx + w*0.48, cy + h*0.7, cx + w*0.04, cy + h*0.5, cx + w*0.05, cy - h*0.2); tCtx.fill(); tCtx.stroke();
+            tCtx.beginPath(); tCtx.moveTo(cx - w*0.06, cy - h*0.3); tCtx.quadraticCurveTo(cx, cy - h*0.4, cx + w*0.06, cy - h*0.3); tCtx.lineWidth = 5; tCtx.stroke();
+            tCtx.shadowBlur = 0; tCtx.shadowOffsetY = 0; tCtx.strokeStyle = "rgba(255,255,255,0.4)"; tCtx.lineWidth = 3;
+            tCtx.beginPath(); tCtx.moveTo(cx - w*0.35, cy - h*0.3); tCtx.lineTo(cx - w*0.25, cy + h*0.2); tCtx.stroke();
+            tCtx.beginPath(); tCtx.moveTo(cx + w*0.18, cy - h*0.3); tCtx.lineTo(cx + w*0.28, cy + h*0.2); tCtx.stroke();
+            tCtx.restore();
+        }
+
+        function drawDevilHorns(tCtx, cx, cy, w) {
+            let hornSize = w * 0.35; let topY = cy - w * 0.35; tCtx.save();
+            tCtx.fillStyle = "#d63031"; tCtx.strokeStyle = "#2d3436"; tCtx.lineWidth = 2;
+            let lx = cx - w * 0.35; tCtx.beginPath(); tCtx.moveTo(lx, topY); tCtx.bezierCurveTo(lx - hornSize*0.4, topY - hornSize*0.5, lx - hornSize*0.6, topY - hornSize, lx - hornSize*0.8, topY - hornSize*1.1); tCtx.bezierCurveTo(lx - hornSize*0.3, topY - hornSize*0.9, lx - hornSize*0.1, topY - hornSize*0.4, lx + hornSize*0.3, topY - hornSize*0.2); tCtx.closePath(); tCtx.fill(); tCtx.stroke();
+            let rx = cx + w * 0.35; tCtx.beginPath(); tCtx.moveTo(rx, topY); tCtx.bezierCurveTo(rx + hornSize*0.4, topY - hornSize*0.5, rx + hornSize*0.6, topY - hornSize, rx + hornSize*0.8, topY - hornSize*1.1); tCtx.bezierCurveTo(rx + hornSize*0.3, topY - hornSize*0.9, rx + hornSize*0.1, topY - hornSize*0.4, rx - hornSize*0.3, topY - hornSize*0.2); tCtx.closePath(); tCtx.fill(); tCtx.stroke();
+            tCtx.restore();
+        }
+
+        function drawClownNose(tCtx, cx, cy, w) {
+            let radius = w * 0.16; tCtx.save();
+            tCtx.beginPath(); tCtx.arc(cx, cy + w*0.05, radius, 0, Math.PI * 2); tCtx.fillStyle = "#ff1744"; tCtx.shadowColor = "rgba(0,0,0,0.4)"; tCtx.shadowBlur = 6; tCtx.shadowOffsetY = 3; tCtx.fill();
+            tCtx.shadowColor = "transparent"; tCtx.beginPath(); tCtx.arc(cx - radius*0.3, (cy + w*0.05) - radius*0.3, radius*0.22, 0, Math.PI * 2); tCtx.fillStyle = "#ffffff"; tCtx.fill();
+            tCtx.restore();
+        }
+
+        function drawPolaroidFilter(srcCanvas, targetCtx, bx, by, iw, ih) {
+            filterCanvas.width = iw; filterCanvas.height = ih;
+            fCtx.drawImage(srcCanvas, bx, by, iw, ih);
+            let imgData = fCtx.getImageData(0, 0, iw, ih);
+            let d = imgData.data;
+            for (let i = 0; i < d.length; i += 4) {
+                d[i] = Math.min(255, d[i] * 0.95 + 10);    
+                d[i+1] = Math.min(255, d[i+1] * 0.92 + 15);
+                d[i+2] = Math.max(0, d[i+2] * 0.85);        
+            }
+            fCtx.putImageData(imgData, 0, 0);
+
+            targetCtx.save();
+            targetCtx.globalAlpha = 0.45;
+            targetCtx.drawImage(filterCanvas, bx, by, iw, ih);
+            targetCtx.drawImage(filterCanvas, bx - 1.8, by, iw, ih);
+            targetCtx.drawImage(filterCanvas, bx + 1.8, by, iw, ih);
+            targetCtx.drawImage(filterCanvas, bx, by - 1.8, iw, ih);
+            targetCtx.drawImage(filterCanvas, bx, by + 1.8, iw, ih);
+            targetCtx.restore();
+        }
+
+        function drawSpiral(tCtx, w, h) {
+            let cx = w * 0.618, cy = h * 0.618; let base = Math.min(w, h) / 40; let fib = [1, 1, 2, 3, 5, 8, 13, 21, 34]; let x = cx, y = cy, dir = 0; tCtx.strokeStyle = "rgba(255, 255, 255, 0.4)"; tCtx.lineWidth = 1.5;
+            for (let i = 0; i < fib.length; i++) {
+                let r = fib[i] * base; tCtx.beginPath();
+                if (dir === 0) { tCtx.arc(x, y + r, r, Math.PI, Math.PI * 1.5); x += r; dir = 1; }
+                else if (dir === 1) { tCtx.arc(x - r, y, r, Math.PI * 1.5, Math.PI * 2); y += r; dir = 2; }
+                else if (dir === 2) { tCtx.arc(x, y - r, r, 0, Math.PI * 0.5); x -= r; dir = 3; }
+                else if (dir === 3) { tCtx.arc(x + r, y, r, Math.PI * 0.5, Math.PI); y -= r; dir = 0; }
+                tCtx.stroke();
+            }
+        }
+
+        function renderLayers(targetCtx, showGridLines) {
+            let w = canvas.width; let h = canvas.height; let eff = effectSelect.value;
+           
+            if (eff === "polaroid") {
+                procCanvas.width = w; procCanvas.height = h;
+                const tmpCtx = procCanvas.getContext('2d');
+                tmpCtx.translate(w, 0); tmpCtx.scale(-1, 1);
+                tmpCtx.drawImage(video, 0, 0, w, h);
+
+                targetCtx.fillStyle = "#fbfbf8"; targetCtx.fillRect(0, 0, w, h);
+                let bx = w * 0.08; let by = h * 0.06;
+                let iw = w - (bx * 2); let ih = h - (by * 2.5);
+
+                drawPolaroidFilter(procCanvas, targetCtx, bx, by, iw, ih);
+
+                targetCtx.fillStyle = "#4b5563"; targetCtx.font = "italic bold 16px Courier New";
+                let d = new Date();
+                targetCtx.fillText(`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} FILM`, bx + 10, h - by - 25);
+            }
+            else {
+                targetCtx.save(); targetCtx.translate(w, 0); targetCtx.scale(-1, 1);
+                if (eff === "haha") {
+                    targetCtx.drawImage(video, 0, 0, w, h);
+                    let imgData = targetCtx.getImageData(0, 0, w, h); let src = new Uint32Array(imgData.data.buffer);
+                    let outData = targetCtx.createImageData(w, h); let dst = new Uint32Array(outData.data.buffer); dst.set(src);
+                    let cx = w / 2; let cy = h / 2; let radius = Math.min(w, h) * 0.35;
+                    for (let y = 0; y < h; y++) {
+                        for (let x = 0; x < w; x++) {
+                            let dx = x - cx; let dy = y - cy; let distance = Math.sqrt(dx*dx + dy*dy);
+                            if (distance < radius) {
+                                let factor = Math.pow(Math.sin((distance / radius) * (Math.PI / 2)), 0.5);
+                                let sx = Math.floor(cx + dx * factor); let sy = Math.floor(cy + dy * factor);
+                                if (sx >= 0 && sx < w && sy >= 0 && sy < h) { dst[y * w + x] = src[sy * w + sx]; }
+                            }
+                        }
+                    }
+                    targetCtx.putImageData(outData, 0, 0);
+                } else { targetCtx.drawImage(video, 0, 0, w, h); }
+                targetCtx.restore();
+            }
+
+            if (eff === "glasses" || eff === "horns" || eff === "clown") {
+                stickerW = parseInt(stickerSizeInput.value);
+                if (eff === "glasses") drawTrendyGlasses(targetCtx, stickerX, stickerY, stickerW);
+                else if (eff === "horns") drawDevilHorns(targetCtx, stickerX, stickerY, stickerW);
+                else if (eff === "clown") drawClownNose(targetCtx, stickerX, stickerY, stickerW);
+            }
+
+            if (showGridLines) {
+                if (modeSelect.value === "grid") {
+                    targetCtx.strokeStyle = "rgba(255, 255, 255, 0.3)"; targetCtx.lineWidth = 1;
+                    for(let i = 1; i < 3; i++) {
+                        targetCtx.beginPath(); targetCtx.moveTo(0, h * i / 3); targetCtx.lineTo(w, h * i / 3); targetCtx.stroke();
+                        targetCtx.beginPath(); targetCtx.moveTo(w * i / 3, 0); targetCtx.lineTo(w * i / 3, h); targetCtx.stroke();
+                    }
+                } else if (modeSelect.value === "spiral") { drawSpiral(targetCtx, w, h); }
+            }
+        }
+
+        function outputFinalPhoto() {
+            sCtx.clearRect(0, 0, canvas.width, canvas.height);
+            renderLayers(sCtx, false);
+
+            const outCanvas = document.createElement('canvas');
+            outCanvas.width = canvas.width; outCanvas.height = canvas.height;
+            const oCtx = outCanvas.getContext('2d');
+
+            if (effectSelect.value === "polaroid") {
+                oCtx.drawImage(snapshotCanvas, 0, 0);
+            } else {
+                oCtx.translate(canvas.width, 0); oCtx.scale(-1, 1);
+                oCtx.drawImage(snapshotCanvas, 0, 0);
+            }
+
+            const imgUrl = outCanvas.toDataURL('image/jpeg');
+            photoResult.style.background = "transparent";
+            photoResult.style.border = "none";
+            photoResult.innerHTML = `<div style="width:100%; text-align:center;"><img src="${imgUrl}" style="max-width:100%; border-radius:4px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 1px solid #272930;"/><p style="color:#ffffff; font-size:13px; margin-top:12px; font-weight:normal; letter-spacing:2px; font-family:'PMingLiU', serif;">✨ 影像已洗出。長按或右鍵點擊相片即可儲存</p></div>`;
+        }
+
+        function triggerInstantCapture() {
+            outputFinalPhoto();
+        }
+
+        function startCountdown(seconds) {
+            isCounting = true; countdownOverlay.style.display = 'flex'; let current = seconds; countdownOverlay.innerText = current;
+            const timer = setInterval(() => {
+                current--;
+                if (current > 0) { countdownOverlay.innerText = current; }
+                else {
+                    clearInterval(timer); countdownOverlay.style.display = 'none';
+                    outputFinalPhoto();
+                    isCounting = false;
+                }
+            }, 1000);
+        }
+
+        const renderLoop = () => {
+            if (!isRunning) return;
+            let eff = effectSelect.value;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (eff === "glasses" || eff === "horns" || eff === "clown") {
+                manualControls.style.display = 'block';
+            } else { manualControls.style.display = 'none'; }
+
+            renderLayers(ctx, true);
+            requestAnimationFrame(renderLoop);
+        };
+       
+        setTimeout(() => { if(video.readyState >= 2) renderLoop(); }, 1000);
+
+        stopBtn.onclick = () => {
+            isRunning = false; if (stream) { stream.getTracks().forEach(track => track.stop()); }
+            video.srcObject = null; window.onkeydown = null;
+            container.innerHTML = `<div style="padding:50px 20px; text-align:center; color:#8a8f9d; font-weight:normal; font-size:14px; font-family:'PMingLiU', serif; letter-spacing:2px;">🔒 裝置已安全終止連線</div>`;
+            photoResult.innerHTML = `本單元已結束。`;
+            photoResult.style.border = "1px solid #1f2128";
+            photoResult.style.color = "#4b4f5d";
+        };
+    }
+    initApp();
+    </script>
+</body>
+</html>
