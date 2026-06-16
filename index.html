@@ -53,22 +53,23 @@
     <div id="app_box" style="padding: 20px; background: #0d0e12; border-radius: 12px; width: 100%; max-width: 480px; color: #f3f4f6; font-family: 'PMingLiU', 'MingLiU', serif; box-shadow: 0 20px 40px rgba(0,0,0,0.6); border: 1px solid #272930; letter-spacing: 0.5px; box-sizing: border-box;">
         <h3 style="margin-top:0; color: #ffffff; border-bottom: 1px solid #23252d; padding-bottom: 14px; text-align: center; font-size: 20px; letter-spacing: 4px; font-weight: 400; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">劉姥姥的相片館</h3>
        
+        <div style="background: #1e2538; padding: 12px; border-radius: 8px; margin-bottom: 14px; border: 1px solid #3b4a71;">
+            <label style="font-size: 13px; color: #ffffff; font-weight: bold;">📷 點擊切換相機鏡頭：</label>
+            <select id="camera_select" style="width: 100%; padding: 10px; background: #13151a; color: #ffffff; border: 1px solid #4b7bec; border-radius: 6px; margin-top: 6px; outline: none; cursor: pointer; font-family: 'PMingLiU', serif; font-size: 14px; font-weight: bold;">
+                <option value="user" selected> 【切換】前置自拍鏡頭 (Front) </option>
+                <option value="environment"> 【切換】後置一般鏡頭 (Rear) </option>
+            </select>
+        </div>
+
         <div id="camera_container" style="position: relative; margin: 16px 0; background: #000; border-radius: 6px; overflow: hidden; width: 100%; aspect-ratio: 1/1; border: 1px solid #1f2128; touch-action: none;">
             <div id="countdown_overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; display:flex; justify-content:center; align-items:center; font-size:80px; color:#ffffff; font-weight:300; background:rgba(0,0,0,0.7); z-index:10; pointer-events:none; display:none; font-family: sans-serif;"></div>
         </div>
        
         <div style="display: flex; justify-content: space-around; background: #13151a; padding: 10px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #1f2128; font-size: 11px; color: #8a8f9d;">
-            <div style="text-align: center;">👉 請按住貼圖「拖曳」來移動位置</div>
+            <div style="text-align: center;">👉 提示：請「按住貼圖不放」並拖曳移動位置</div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-            <div>
-                <label style="font-size: 12px; color: #8a8f9d; font-weight: normal;">📷 選擇相機鏡頭</label><br>
-                <select id="camera_select" style="width: 100%; padding: 8px; background: #13151a; color: #ffffff; border: 1px solid #272930; border-radius: 6px; margin-top: 6px; outline: none; cursor: pointer; font-family: 'PMingLiU', serif; font-size: 12px; transition: border 0.2s;">
-                    <option value="user" selected>前置自拍鏡頭 (Front)</option>
-                    <option value="environment">後置一般鏡頭 (Rear)</option>
-                </select>
-            </div>
             <div>
                 <label style="font-size: 12px; color: #8a8f9d; font-weight: normal;">📐 構圖輔助線</label><br>
                 <select id="mode_select" style="width: 100%; padding: 8px; background: #13151a; color: #ffffff; border: 1px solid #272930; border-radius: 6px; margin-top: 6px; outline: none; cursor: pointer; font-family: 'PMingLiU', serif; font-size: 12px; transition: border 0.2s;">
@@ -77,9 +78,6 @@
                     <option value="spiral">黃金螺旋 (Golden Spiral)</option>
                 </select>
             </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr; margin-bottom: 20px;">
             <div>
                 <label style="font-size: 12px; color: #8a8f9d; font-weight: normal;">🎨 特效與貼圖</label><br>
                 <select id="effect_select" style="width: 100%; padding: 8px; background: #13151a; color: #ffffff; border: 1px solid #272930; border-radius: 6px; margin-top: 6px; outline: none; cursor: pointer; font-family: 'PMingLiU', serif; font-size: 12px; transition: border 0.2s;">
@@ -153,13 +151,93 @@
         const fCtx = filterCanvas.getContext('2d');
 
         let isRunning = true; let isCounting = false;
-        let stickerX = 0; let stickerY = 0; let stickerW = 130;
         
+        // 確保初始化的時候直接給予固定數值，絕對不縮在左上角
+        let stickerX = 200; let stickerY = 200; let stickerW = 130;
         let isDragging = false;
-        let startTouchX = 0; let startTouchY = 0;
-        let startStickerX = 0; let startStickerY = 0;
+        
+        // 用來記錄前一次觸控點的防卡死歷史座標
+        let lastX = 0; let lastY = 0;
 
-        // 🎥 ✨ 核心重構：啟動鏡頭函式，支援動態切換前/後鏡頭 ✨
+        const resizeCanvasToContainer = () => {
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            snapshotCanvas.width = rect.width;
+            snapshotCanvas.height = rect.height;
+            
+            // 重新計算真正的正中央
+            stickerX = canvas.width / 2;
+            stickerY = canvas.height / 2;
+        };
+
+        // 🛠️ 第一步：把所有按鈕、拖曳、選單事件提到最前面（防卡死核心）
+        cameraSelect.onchange = () => {
+            if (isRunning) startCamera(cameraSelect.value);
+        };
+
+        function dragStart(clientX, clientY) {
+            const eff = effectSelect.value;
+            if (eff !== "glasses" && eff !== "horns" && eff !== "clown") return;
+            isDragging = true;
+            lastX = clientX;
+            lastY = clientY;
+        }
+
+        function dragMove(clientX, clientY) {
+            if (!isDragging) return;
+            const rect = container.getBoundingClientRect();
+            
+            // 計算這一次移動與上一次點擊之間，手指滑動了多少物理像素
+            let moveX = ((clientX - lastX) / rect.width) * canvas.width;
+            let moveY = ((clientY - lastY) / rect.height) * canvas.height;
+
+            let newX, newY;
+            
+            // ✨ 終極拖曳方向修正公式
+            if (cameraSelect.value === "user") {
+                // 前置鏡頭自拍模式下：因為畫面左右反轉，手指往右滑(moveX為正)，在內部座標軸中貼圖必須往左減去，視覺上才會是聽話往右！
+                newX = stickerX - moveX; 
+            } else {
+                // 後置鏡頭一般模式下：手指往右滑，貼圖就往右加，完全正常
+                newX = stickerX + moveX; 
+            }
+            newY = stickerY + moveY;
+
+            // 限制貼圖不能超出黑色框框
+            if (newX < 0) newX = 0; if (newX > canvas.width) newX = canvas.width;
+            if (newY < 0) newY = 0; if (newY > canvas.height) newY = canvas.height;
+
+            stickerX = newX;
+            stickerY = newY;
+            
+            // 記錄當前位置作為下一次移動的起點
+            lastX = clientX;
+            lastY = clientY;
+        }
+
+        function dragEnd() {
+            isDragging = false;
+        }
+
+        // 綁定滑鼠事件
+        container.onmousedown = (e) => { dragStart(e.clientX, e.clientY); };
+        window.onmousemove = (e) => { dragMove(e.clientX, e.clientY); };
+        window.onmouseup = () => { dragEnd(); };
+
+        // 綁定觸控拖曳事件
+        container.ontouchstart = (e) => { 
+            if (e.touches.length > 0) dragStart(e.touches[0].clientX, e.touches[0].clientY);
+        };
+        container.ontouchmove = (e) => { 
+            if (isDragging && e.touches.length > 0) {
+                dragMove(e.touches[0].clientX, e.touches[0].clientY);
+                e.preventDefault(); // 防止平板滑動時，整個網頁跟著上下飄移
+            }
+        };
+        container.ontouchend = () => { dragEnd(); };
+
+        // 📷 啟動相機的獨立函式
         async function startCamera(facingMode) {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
@@ -170,41 +248,17 @@
                 }); 
                 video.srcObject = stream;
                 
-                // ✨ 如果是前置鏡頭(user)就翻轉畫面讓它像照鏡子；後置鏡頭(environment)則不翻轉
                 if (facingMode === "user") {
-                    video.style.transform = 'scaleX(-1)';
+                    video.style.transform = 'scaleX(-1)'; // 自拍鏡像
                 } else {
-                    video.style.transform = 'none';
+                    video.style.transform = 'none'; // 一般鏡頭
                 }
                 await video.play();
-                
-                // 切換鏡頭後將貼圖重置回中央
-                stickerX = canvas.width / 2;
-                stickerY = canvas.height / 2;
+                resizeCanvasToContainer();
             } catch (err) {
-                container.innerHTML = `<p style="color:#ef4444; padding:20px; text-align:center; font-size:13px;">鏡頭啟動失敗，請確保允許攝影機權限。</p>`;
+                console.log("鏡頭切換失敗: ", err);
             }
         }
-
-        // ✨ 監聽鏡頭選單切換事件
-        cameraSelect.onchange = () => {
-            if (isRunning) {
-                startCamera(cameraSelect.value);
-            }
-        };
-
-        const resizeCanvasToContainer = () => {
-            const rect = container.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-            snapshotCanvas.width = rect.width;
-            snapshotCanvas.height = rect.height;
-            
-            if (stickerX === 0 && stickerY === 0) {
-                stickerX = canvas.width / 2;
-                stickerY = canvas.height / 2;
-            }
-        };
 
         video.onloadedmetadata = () => {
             resizeCanvasToContainer();
@@ -213,62 +267,6 @@
         window.addEventListener('resize', () => {
             resizeCanvasToContainer();
         });
-
-        // 🛠️ ✨ 智慧型拖曳系統：會自動根據當前鏡頭種類(前/後)修正拖曳物理方向 ✨
-        function dragStart(clientX, clientY) {
-            const eff = effectSelect.value;
-            if (eff !== "glasses" && eff !== "horns" && eff !== "clown") return;
-            
-            isDragging = true;
-            startTouchX = clientX;
-            startTouchY = clientY;
-            startStickerX = stickerX;
-            startStickerY = stickerY;
-        }
-
-        function dragMove(clientX, clientY) {
-            if (!isDragging) return;
-            const rect = container.getBoundingClientRect();
-            
-            let deltaX = ((clientX - startTouchX) / rect.width) * canvas.width;
-            let deltaY = ((clientY - startTouchY) / rect.height) * canvas.height;
-
-            let newX, newY;
-            
-            // ✨ 智慧判定：如果是前置鏡頭(user)，X軸必須用減的(鏡像)；如果是一般後置鏡頭，X軸改用加的(正常方向)！
-            if (cameraSelect.value === "user") {
-                newX = startStickerX - deltaX; 
-            } else {
-                newX = startStickerX + deltaX; 
-            }
-            newY = startStickerY + deltaY; // Y軸不論前後鏡頭都是相同的方向
-
-            if (newX < 0) newX = 0; if (newX > canvas.width) newX = canvas.width;
-            if (newY < 0) newY = 0; if (newY > canvas.height) newY = canvas.height;
-
-            stickerX = newX;
-            stickerY = newY;
-        }
-
-        function dragEnd() {
-            isDragging = false;
-        }
-
-        // 滑鼠與觸控事件綁定
-        container.onmousedown = (e) => { dragStart(e.clientX, e.clientY); };
-        window.onmousemove = (e) => { dragMove(e.clientX, e.clientY); };
-        window.onmouseup = () => { dragEnd(); };
-
-        container.ontouchstart = (e) => { 
-            if (e.touches.length > 0) dragStart(e.touches[0].clientX, e.touches[0].clientY);
-        };
-        container.ontouchmove = (e) => { 
-            if (isDragging && e.touches.length > 0) {
-                dragMove(e.touches[0].clientX, e.touches[0].clientY);
-                e.preventDefault();
-            }
-        };
-        container.ontouchend = () => { dragEnd(); };
 
         window.onkeydown = (e) => {
             if (isCounting || !isRunning) return;
@@ -350,11 +348,7 @@
             if (eff === "polaroid") {
                 procCanvas.width = w; procCanvas.height = h;
                 const tmpCtx = procCanvas.getContext('2d');
-                
-                // ✨ 只有前置自拍鏡頭需要做基礎畫布鏡像反轉
-                if (isUserCam) {
-                    tmpCtx.translate(w, 0); tmpCtx.scale(-1, 1);
-                }
+                if (isUserCam) { tmpCtx.translate(w, 0); tmpCtx.scale(-1, 1); }
                 
                 let vW = video.videoWidth; let vH = video.videoHeight;
                 let vRatio = vW / vH; let cRatio = w / h;
@@ -375,9 +369,7 @@
             }
             else {
                 targetCtx.save(); 
-                if (isUserCam) {
-                    targetCtx.translate(w, 0); targetCtx.scale(-1, 1);
-                }
+                if (isUserCam) { targetCtx.translate(w, 0); targetCtx.scale(-1, 1); }
                 
                 let vW = video.videoWidth; let vH = video.videoHeight;
                 let vRatio = vW / vH; let cRatio = w / h;
@@ -436,7 +428,6 @@
             outCanvas.width = canvas.width; outCanvas.height = canvas.height;
             const oCtx = outCanvas.getContext('2d');
 
-            // 存檔時的邏輯：只有在非拍立得特效且為前置鏡頭時，才需要做最後的鏡像轉回來
             if (effectSelect.value !== "polaroid" && cameraSelect.value === "user") {
                 oCtx.translate(canvas.width, 0); oCtx.scale(-1, 1);
             }
@@ -448,9 +439,7 @@
             photoResult.innerHTML = `<div style="width:100%; text-align:center;"><img src="${imgUrl}" style="max-width:100%; border-radius:4px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 1px solid #272930;"/><p style="color:#ffffff; font-size:12px; margin-top:12px; font-weight:normal; letter-spacing:2px; font-family:'PMingLiU', serif;">✨ 影像已洗出。長按即可儲存相片</p></div>`;
         }
 
-        function triggerInstantCapture() {
-            outputFinalPhoto();
-        }
+        function triggerInstantCapture() { outputFinalPhoto(); }
 
         function startCountdown(seconds) {
             isCounting = true; countdownOverlay.style.display = 'flex'; let current = seconds; countdownOverlay.innerText = current;
@@ -478,7 +467,7 @@
             requestAnimationFrame(renderLoop);
         };
        
-        // 初始化預設啟動前置鏡頭
+        // 🛠️ 最後一步：開心地去開相機，就算它慢了，上面的東西也全部就緒了！
         await startCamera("user");
         resizeCanvasToContainer();
         renderLoop();
