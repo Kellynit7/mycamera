@@ -32,7 +32,6 @@
         select:focus {
             border-color: #4b7bec !important;
         }
-        /* 優化手機滑桿樣式 */
         input[type=range] {
             -webkit-appearance: none;
             background: #252833;
@@ -54,15 +53,12 @@
     <div id="app_box" style="padding: 20px; background: #0d0e12; border-radius: 12px; width: 100%; max-width: 500px; color: #f3f4f6; font-family: 'PMingLiU', 'MingLiU', serif; box-shadow: 0 20px 40px rgba(0,0,0,0.6); border: 1px solid #272930; letter-spacing: 0.5px; box-sizing: border-box;">
         <h3 style="margin-top:0; color: #ffffff; border-bottom: 1px solid #23252d; padding-bottom: 14px; text-align: center; font-size: 20px; letter-spacing: 4px; font-weight: 400; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">劉姥姥的相片館</h3>
        
-        <!-- ✨ 這裡修復了外框容器，確保內部不論什麼比例都能滿版顯示且不壓扁 -->
-        <div id="camera_container" style="position: relative; margin: 16px 0; background: #000; border-radius: 6px; overflow: hidden; height: 320px; border: 1px solid #1f2128; display: flex; justify-content: center; align-items: center;">
+        <div id="camera_container" style="position: relative; margin: 16px 0; background: #000; border-radius: 6px; overflow: hidden; height: 350px; border: 1px solid #1f2128;">
             <div id="countdown_overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; display:flex; justify-content:center; align-items:center; font-size:80px; color:#ffffff; font-weight:300; background:rgba(0,0,0,0.7); z-index:10; pointer-events:none; display:none; font-family: sans-serif;"></div>
         </div>
        
         <div style="display: flex; justify-content: space-around; background: #13151a; padding: 10px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #1f2128; font-size: 11px; color: #8a8f9d;">
-            <div style="text-align: center;">手機點擊畫面可操作</div>
-            <div style="text-align: center;"><span style="background: #252833; color: #e5e7eb; padding: 1px 4px; border-radius: 3px; font-family: monospace;">Space</span> 即拍</div>
-            <div style="text-align: center;"><span style="background: #252833; color: #e5e7eb; padding: 1px 4px; border-radius: 3px; font-family: monospace;">3</span> / <span style="background: #252833; color: #e5e7eb; padding: 1px 4px; border-radius: 3px; font-family: monospace;">5</span> 倒數</div>
+            <div style="text-align: center;">提示：點擊鏡頭畫面可移動貼圖</div>
         </div>
        
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
@@ -88,7 +84,7 @@
         </div>
 
         <div id="manual_controls" style="background: #13151a; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 12px; border: 1px solid #1f2128; display:none; color: #8a8f9d;">
-            📏 調整貼圖尺寸（點擊鏡頭可移動）：
+            📏 調整貼圖尺寸：
             <input type="range" id="sticker_size" min="40" max="250" value="130" style="width:45%; vertical-align: middle; margin-left: 10px; cursor: pointer;">
         </div>
 
@@ -124,9 +120,10 @@
         let stream = null;
         let video = document.createElement('video');
         
-        // ✨ 新增 objectFit 處理，並將寬高綁定在容器上，不與畫布衝突
-        video.style.width = '100%'; 
-        video.style.height = '100%'; 
+        // 🛠️ 終極修復：移除所有可能導致擠壓的 width/height 100% 寫法，改用絕對定位覆蓋
+        video.style.position = 'absolute';
+        video.style.top = '0'; video.style.left = '0';
+        video.style.width = '100%'; video.style.height = '100%';
         video.style.objectFit = 'cover';
         video.setAttribute('playsinline', ''); 
        
@@ -146,7 +143,7 @@
         const canvas = document.createElement('canvas');
         canvas.style.position = 'absolute'; canvas.style.left = '0px'; canvas.style.top = '0px';
         canvas.style.width = '100%'; canvas.style.height = '100%';
-        canvas.style.objectFit = 'cover'; // ✨ 雙重防變形保險
+        canvas.style.objectFit = 'cover';
         container.appendChild(canvas);
         const ctx = canvas.getContext('2d');
 
@@ -160,22 +157,31 @@
         let isRunning = true; let isCounting = false;
         let stickerX = 0; let stickerY = 0; let stickerW = 130;
 
-        // ✨ 修正邏輯：以相機鏡頭實際輸出的比例做為畫布基準
+        // 🛠️ 終極修復：強迫畫布的「物理像素解析度」直接等於「外框黑框的實際大小」！
+        // 這樣瀏覽器就沒有任何藉口可以縮放或擠壓我們的畫面了。
+        const resizeCanvasToContainer = () => {
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            snapshotCanvas.width = rect.width;
+            snapshotCanvas.height = rect.height;
+        };
+
         video.onloadedmetadata = () => {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            snapshotCanvas.width = canvas.width;
-            snapshotCanvas.height = canvas.height;
+            resizeCanvasToContainer();
             stickerX = canvas.width / 2;
             stickerY = canvas.height / 2;
             renderLoop();
         };
 
-        // 手機點擊調整貼圖定位更精準
+        // 當平板旋轉或視窗變動時自動重新計算，確保絕不變形
+        window.addEventListener('resize', resizeCanvasToContainer);
+
         container.onclick = (e) => {
             const rect = container.getBoundingClientRect();
             let pctX = (e.clientX - rect.left) / rect.width;
             let pctY = (e.clientY - rect.top) / rect.height;
+            // 修正貼圖鏡像點擊位置
             stickerX = (1 - pctX) * canvas.width; 
             stickerY = pctY * canvas.height;
         };
@@ -260,7 +266,14 @@
                 procCanvas.width = w; procCanvas.height = h;
                 const tmpCtx = procCanvas.getContext('2d');
                 tmpCtx.translate(w, 0); tmpCtx.scale(-1, 1);
-                tmpCtx.drawImage(video, 0, 0, w, h);
+                
+                // 🛠️ 修正：繪製 video 時，手動模擬 cover 裁切填滿效果，不依賴瀏覽器
+                let vW = video.videoWidth; let vH = video.videoHeight;
+                let vRatio = vW / vH; let cRatio = w / h;
+                let sW, sH, sX, sY;
+                if (cRatio > vRatio) { sW = vW; sH = vW / cRatio; sX = 0; sY = (vH - sH) / 2; }
+                else { sH = vH; sW = vH * cRatio; sX = (vW - sW) / 2; sY = 0; }
+                tmpCtx.drawImage(video, sX, sY, sW, sH, 0, 0, w, h);
 
                 targetCtx.fillStyle = "#fbfbf8"; targetCtx.fillRect(0, 0, w, h);
                 let bx = w * 0.08; let by = h * 0.06;
@@ -268,29 +281,42 @@
 
                 drawPolaroidFilter(procCanvas, targetCtx, bx, by, iw, ih);
 
-                targetCtx.fillStyle = "#4b5563"; targetCtx.font = "italic bold 16px Courier New";
+                targetCtx.fillStyle = "#4b5563"; targetCtx.font = "italic bold 14px Courier New";
                 let d = new Date();
-                targetCtx.fillText(`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} FILM`, bx + 10, h - by - 25);
+                targetCtx.fillText(`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} FILM`, bx + 10, h - by - 20);
             }
             else {
                 targetCtx.save(); targetCtx.translate(w, 0); targetCtx.scale(-1, 1);
+                
+                let vW = video.videoWidth; let vH = video.videoHeight;
+                let vRatio = vW / vH; let cRatio = w / h;
+                let sW, sH, sX, sY;
+                if (cRatio > vRatio) { sW = vW; sH = vW / cRatio; sX = 0; sY = (vH - sH) / 2; }
+                else { sH = vH; sW = vH * cRatio; sX = (vW - sW) / 2; sY = 0; }
+
                 if (eff === "haha") {
-                    targetCtx.drawImage(video, 0, 0, w, h);
-                    let imgData = targetCtx.getImageData(0, 0, w, h); let src = new Uint32Array(imgData.data.buffer);
-                    let outData = targetCtx.createImageData(w, h); let dst = new Uint32Array(outData.data.buffer); dst.set(src);
+                    // 先把裁切好的圖畫上去
+                    procCanvas.width = w; procCanvas.height = h;
+                    const tmpCtx2 = procCanvas.getContext('2d');
+                    tmpCtx2.drawImage(video, sX, sY, sW, sH, 0, 0, w, h);
+
+                    let imgData = tmpCtx2.getImageData(0, 0, w, h); let src = new Uint32Array(imgData.data.buffer);
+                    let outData = tmpCtx2.createImageData(w, h); let dst = new Uint32Array(outData.data.buffer); dst.set(src);
                     let cx = w / 2; let cy = h / 2; let radius = Math.min(w, h) * 0.35;
                     for (let y = 0; y < h; y++) {
                         for (let x = 0; x < w; x++) {
                             let dx = x - cx; let dy = y - cy; let distance = Math.sqrt(dx*dx + dy*dy);
                             if (distance < radius) {
                                 let factor = Math.pow(Math.sin((distance / radius) * (Math.PI / 2)), 0.5);
-                                let sx = Math.floor(cx + dx * factor); let sy = Math.floor(cy + dy * factor);
-                                if (sx >= 0 && sx < w && sy >= 0 && sy < h) { dst[y * w + x] = src[sy * w + sx]; }
+                                let sx_coord = Math.floor(cx + dx * factor); let sy_coord = Math.floor(cy + dy * factor);
+                                if (sx_coord >= 0 && sx_coord < w && sy_coord >= 0 && sy_coord < h) { dst[y * w + x] = src[sy_coord * w + sx_coord]; }
                             }
                         }
                     }
                     targetCtx.putImageData(outData, 0, 0);
-                } else { targetCtx.drawImage(video, 0, 0, w, h); }
+                } else { 
+                    targetCtx.drawImage(video, sX, sY, sW, sH, 0, 0, w, h); 
+                }
                 targetCtx.restore();
             }
 
@@ -368,6 +394,7 @@
         stopBtn.onclick = () => {
             isRunning = false; if (stream) { stream.getTracks().forEach(track => track.stop()); }
             video.srcObject = null; window.onkeydown = null;
+            window.removeEventListener('resize', resizeCanvasToContainer);
             container.innerHTML = `<div style="padding:50px 20px; text-align:center; color:#8a8f9d; font-weight:normal; font-size:14px; font-family:'PMingLiU', serif; letter-spacing:2px;">🔒 裝置已安全終止連線</div>`;
             photoResult.innerHTML = `本單元已結束。`;
             photoResult.style.border = "1px solid #1f2128";
