@@ -53,12 +53,13 @@
     <div id="app_box" style="padding: 20px; background: #0d0e12; border-radius: 12px; width: 100%; max-width: 480px; color: #f3f4f6; font-family: 'PMingLiU', 'MingLiU', serif; box-shadow: 0 20px 40px rgba(0,0,0,0.6); border: 1px solid #272930; letter-spacing: 0.5px; box-sizing: border-box;">
         <h3 style="margin-top:0; color: #ffffff; border-bottom: 1px solid #23252d; padding-bottom: 14px; text-align: center; font-size: 20px; letter-spacing: 4px; font-weight: 400; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">劉姥姥的相片館</h3>
        
-        <div id="camera_container" style="position: relative; margin: 16px 0; background: #000; border-radius: 6px; overflow: hidden; width: 100%; aspect-ratio: 1/1; border: 1px solid #1f2128;">
+        <!-- 🎥 相機容器外框 -->
+        <div id="camera_container" style="position: relative; margin: 16px 0; background: #000; border-radius: 6px; overflow: hidden; width: 100%; aspect-ratio: 1/1; border: 1px solid #1f2128; touch-action: none;">
             <div id="countdown_overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; display:flex; justify-content:center; align-items:center; font-size:80px; color:#ffffff; font-weight:300; background:rgba(0,0,0,0.7); z-index:10; pointer-events:none; display:none; font-family: sans-serif;"></div>
         </div>
        
         <div style="display: flex; justify-content: space-around; background: #13151a; padding: 10px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #1f2128; font-size: 11px; color: #8a8f9d;">
-            <div style="text-align: center;">提示：點擊鏡頭畫面可移動貼圖</div>
+            <div style="text-align: center;">提示：可以直接用手指「拖曳」畫面上的貼圖移動喔！</div>
         </div>
        
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
@@ -155,20 +156,24 @@
 
         let isRunning = true; let isCounting = false;
         let stickerX = 0; let stickerY = 0; let stickerW = 130;
+        let isDragging = false; // ✨ 是否正在拖曳的狀態旗標
 
-        // 🛠️ 配合 1:1，動態精準計算物理像素
         const resizeCanvasToContainer = () => {
             const rect = container.getBoundingClientRect();
             canvas.width = rect.width;
             canvas.height = rect.height;
             snapshotCanvas.width = rect.width;
             snapshotCanvas.height = rect.height;
+            
+            // ✨ 確保初始化時，貼圖在畫布真正的正中央，不再縮在左上角
+            if (stickerX === 0 && stickerY === 0) {
+                stickerX = canvas.width / 2;
+                stickerY = canvas.height / 2;
+            }
         };
 
         video.onloadedmetadata = () => {
             resizeCanvasToContainer();
-            stickerX = canvas.width / 2;
-            stickerY = canvas.height / 2;
             renderLoop();
         };
 
@@ -176,13 +181,31 @@
             resizeCanvasToContainer();
         });
 
-        container.onclick = (e) => {
+        // 🛠️ ✨ 全新設計：完全符合直覺的「觸控/滑鼠拖曳」系統（徹底修復鏡像反轉問題） ✨
+        function handleMove(clientX, clientY) {
+            if (!isDragging) return;
             const rect = container.getBoundingClientRect();
-            let pctX = (e.clientX - rect.left) / rect.width;
-            let pctY = (e.clientY - rect.top) / rect.height;
+            let pctX = (clientX - rect.left) / rect.width;
+            let pctY = (clientY - rect.top) / rect.height;
+            
+            // 限制拖曳範圍在框框內
+            if (pctX < 0) pctX = 0; if (pctX > 1) pctX = 1;
+            if (pctY < 0) pctY = 0; if (pctY > 1) pctY = 1;
+
+            // ✨ 最關鍵修正：因為鏡頭畫面做了鏡像，所以貼圖的 X 座標必須用 (1 - pctX) 來反轉，手指往右，貼圖就往右！
             stickerX = (1 - pctX) * canvas.width; 
             stickerY = pctY * canvas.height;
-        };
+        }
+
+        // 電腦滑鼠事件
+        container.onmousedown = (e) => { isDragging = true; handleMove(e.clientX, e.clientY); };
+        window.onmousemove = (e) => { if (isDragging) handleMove(e.clientX, e.clientY); };
+        window.onmouseup = () => { isDragging = false; };
+
+        // 手機/平板觸控事件
+        container.ontouchstart = (e) => { isDragging = true; handleMove(e.touches[0].clientX, e.touches[0].clientY); };
+        container.ontouchmove = (e) => { if (isDragging) { handleMove(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); } };
+        container.ontouchend = () => { isDragging = false; };
 
         window.onkeydown = (e) => {
             if (isCounting || !isRunning) return;
